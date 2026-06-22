@@ -1,67 +1,74 @@
 import { FC, useMemo } from 'react';
+import { OrderInfoUI } from '@ui';
 import { Preloader } from '../ui/preloader';
-import { OrderInfoUI } from '../ui/order-info';
-import { TIngredient } from '@utils-types';
+import { useSelector } from '../../services/store';
+import { selectFeedOrders } from '../../services/selectors/feedSelectors';
+import { selectOrders } from '../../services/selectors/ordersSelectors';
+import { selectIngredients } from '../../services/selectors/ingredientsSelectors';
+import { useParams, useLocation } from 'react-router-dom';
 
 export const OrderInfo: FC = () => {
-  /** TODO: взять переменные orderData и ingredients из стора */
-  const orderData = {
-    createdAt: '',
-    ingredients: [],
-    _id: '',
-    status: '',
-    name: '',
-    updatedAt: 'string',
-    number: 0
-  };
+  const { number } = useParams();
+  const location = useLocation();
+  const feedOrders = useSelector(selectFeedOrders);
+  const profileOrders = useSelector(selectOrders);
+  const ingredients = useSelector(selectIngredients);
 
-  const ingredients: TIngredient[] = [];
+  const isProfileRoute = location.pathname.includes('/profile/orders');
+  const orders = isProfileRoute ? profileOrders : feedOrders;
 
-  /* Готовим данные для отображения */
-  const orderInfo = useMemo(() => {
-    if (!orderData || !ingredients.length) return null;
+  const order = orders.find((item) => String(item.number) === number);
 
-    const date = new Date(orderData.createdAt);
-
-    type TIngredientsWithCount = {
-      [key: string]: TIngredient & { count: number };
-    };
-
-    const ingredientsInfo = orderData.ingredients.reduce(
-      (acc: TIngredientsWithCount, item) => {
-        if (!acc[item]) {
-          const ingredient = ingredients.find((ing) => ing._id === item);
-          if (ingredient) {
-            acc[item] = {
-              ...ingredient,
-              count: 1
-            };
-          }
-        } else {
-          acc[item].count++;
-        }
-
-        return acc;
-      },
-      {}
-    );
-
-    const total = Object.values(ingredientsInfo).reduce(
-      (acc, item) => acc + item.price * item.count,
-      0
-    );
-
-    return {
-      ...orderData,
-      ingredientsInfo,
-      date,
-      total
-    };
-  }, [orderData, ingredients]);
-
-  if (!orderInfo) {
+  if (!order) {
     return <Preloader />;
   }
 
-  return <OrderInfoUI orderInfo={orderInfo} />;
+  // Формируем данные для отображения
+  const orderInfo = {
+    _id: order._id,
+    status: order.status,
+    name: order.name,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    number: order.number,
+    ingredients: order.ingredients // оставляем как массив строк
+  };
+
+  // Подсчет общей стоимости
+  const total = order.ingredients.reduce((sum, id) => {
+    const ingredient = ingredients.find((item) => item._id === id);
+    return sum + (ingredient?.price || 0);
+  }, 0);
+
+  // Формируем объект ingredientsInfo для OrderInfoUI
+  const ingredientsInfo = order.ingredients.reduce(
+    (acc, id) => {
+      const ingredient = ingredients.find((item) => item._id === id);
+      if (ingredient) {
+        if (!acc[id]) {
+          acc[id] = {
+            ...ingredient,
+            count: 0
+          };
+        }
+        acc[id].count += 1;
+      }
+      return acc;
+    },
+    {} as { [key: string]: any }
+  );
+
+  // Форматирование даты
+  const date = new Date(order.createdAt);
+
+  return (
+    <OrderInfoUI
+      orderInfo={{
+        ...orderInfo,
+        ingredientsInfo: ingredientsInfo,
+        date: date,
+        total: total
+      }}
+    />
+  );
 };
