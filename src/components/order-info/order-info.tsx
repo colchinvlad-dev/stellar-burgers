@@ -1,25 +1,62 @@
-import { FC, useMemo } from 'react';
+// src/components/order-info/order-info.tsx
+import { FC, useMemo, useEffect } from 'react';
 import { OrderInfoUI } from '@ui';
 import { Preloader } from '../ui/preloader';
-import { useSelector } from '../../services/store';
+import { useSelector, useDispatch } from '../../services/store';
 import { selectFeedOrders } from '../../services/selectors/feedSelectors';
 import { selectOrders } from '../../services/selectors/ordersSelectors';
 import { selectIngredients } from '../../services/selectors/ingredientsSelectors';
+import {
+  selectOrderByNumber,
+  selectOrderByNumberLoading
+} from '../../services/selectors/orderByNumberSelectors';
+import {
+  getOrderByNumber,
+  clearOrderByNumber
+} from '../../services/slices/orderByNumberSlice';
 import { useParams, useLocation } from 'react-router-dom';
 
 export const OrderInfo: FC = () => {
   const { number } = useParams();
   const location = useLocation();
+  const dispatch = useDispatch();
+
   const feedOrders = useSelector(selectFeedOrders);
   const profileOrders = useSelector(selectOrders);
   const ingredients = useSelector(selectIngredients);
+  const orderByNumber = useSelector(selectOrderByNumber);
+  const isLoading = useSelector(selectOrderByNumberLoading);
 
   const isProfileRoute = location.pathname.includes('/profile/orders');
   const orders = isProfileRoute ? profileOrders : feedOrders;
 
-  const order = orders.find((item) => String(item.number) === number);
+  // Ищем заказ в сторе
+  let orderData = orders.find((item) => String(item.number) === number);
+
+  // Если заказа нет в сторе, запрашиваем его
+  useEffect(() => {
+    if (!orderData && number) {
+      dispatch(getOrderByNumber(Number(number)));
+    }
+    return () => {
+      dispatch(clearOrderByNumber());
+    };
+  }, [dispatch, orderData, number]);
+
+  // Если заказ еще не найден и идет загрузка
+  if (isLoading || (!orderData && !orderByNumber)) {
+    return <Preloader />;
+  }
+
+  // Используем данные из стора или из запроса по номеру
+  const order = orderData || orderByNumber;
 
   if (!order) {
+    return <Preloader />;
+  }
+
+  // Проверяем, что ингредиенты загружены
+  if (!ingredients.length) {
     return <Preloader />;
   }
 
@@ -31,7 +68,7 @@ export const OrderInfo: FC = () => {
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
     number: order.number,
-    ingredients: order.ingredients // оставляем как массив строк
+    ingredients: order.ingredients
   };
 
   // Подсчет общей стоимости

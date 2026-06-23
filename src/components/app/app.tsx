@@ -1,3 +1,4 @@
+// src/components/app/app.tsx
 import {
   BrowserRouter,
   Routes,
@@ -111,13 +112,16 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path='/ingredients/:id' element={<ConstructorPage />} />
-            <Route path='/feed/:number' element={<Feed />} />
+            {/* Исправлено: для /ingredients/:id показываем IngredientDetails */}
+            <Route path='/ingredients/:id' element={<IngredientDetails />} />
+            {/* Исправлено: для /feed/:number показываем OrderInfo */}
+            <Route path='/feed/:number' element={<OrderInfo />} />
+            {/* Исправлено: для /profile/orders/:number показываем OrderInfo */}
             <Route
               path='/profile/orders/:number'
               element={
                 <ProtectedRoute>
-                  <ProfileOrders />
+                  <OrderInfo />
                 </ProtectedRoute>
               }
             />
