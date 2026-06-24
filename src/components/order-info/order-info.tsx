@@ -1,67 +1,111 @@
-import { FC, useMemo } from 'react';
+// src/components/order-info/order-info.tsx
+import { FC, useMemo, useEffect } from 'react';
+import { OrderInfoUI } from '@ui';
 import { Preloader } from '../ui/preloader';
-import { OrderInfoUI } from '../ui/order-info';
-import { TIngredient } from '@utils-types';
+import { useSelector, useDispatch } from '../../services/store';
+import { selectFeedOrders } from '../../services/selectors/feedSelectors';
+import { selectOrders } from '../../services/selectors/ordersSelectors';
+import { selectIngredients } from '../../services/selectors/ingredientsSelectors';
+import {
+  selectOrderByNumber,
+  selectOrderByNumberLoading
+} from '../../services/selectors/orderByNumberSelectors';
+import {
+  getOrderByNumber,
+  clearOrderByNumber
+} from '../../services/slices/orderByNumberSlice';
+import { useParams, useLocation } from 'react-router-dom';
 
 export const OrderInfo: FC = () => {
-  /** TODO: взять переменные orderData и ingredients из стора */
-  const orderData = {
-    createdAt: '',
-    ingredients: [],
-    _id: '',
-    status: '',
-    name: '',
-    updatedAt: 'string',
-    number: 0
-  };
+  const { number } = useParams();
+  const location = useLocation();
+  const dispatch = useDispatch();
 
-  const ingredients: TIngredient[] = [];
+  const feedOrders = useSelector(selectFeedOrders);
+  const profileOrders = useSelector(selectOrders);
+  const ingredients = useSelector(selectIngredients);
+  const orderByNumber = useSelector(selectOrderByNumber);
+  const isLoading = useSelector(selectOrderByNumberLoading);
 
-  /* Готовим данные для отображения */
-  const orderInfo = useMemo(() => {
-    if (!orderData || !ingredients.length) return null;
+  const isProfileRoute = location.pathname.includes('/profile/orders');
+  const orders = isProfileRoute ? profileOrders : feedOrders;
 
-    const date = new Date(orderData.createdAt);
+  // Ищем заказ в сторе
+  let orderData = orders.find((item) => String(item.number) === number);
 
-    type TIngredientsWithCount = {
-      [key: string]: TIngredient & { count: number };
+  // Если заказа нет в сторе, запрашиваем его
+  useEffect(() => {
+    if (!orderData && number) {
+      dispatch(getOrderByNumber(Number(number)));
+    }
+    return () => {
+      dispatch(clearOrderByNumber());
     };
+  }, [dispatch, orderData, number]);
 
-    const ingredientsInfo = orderData.ingredients.reduce(
-      (acc: TIngredientsWithCount, item) => {
-        if (!acc[item]) {
-          const ingredient = ingredients.find((ing) => ing._id === item);
-          if (ingredient) {
-            acc[item] = {
-              ...ingredient,
-              count: 1
-            };
-          }
-        } else {
-          acc[item].count++;
-        }
-
-        return acc;
-      },
-      {}
-    );
-
-    const total = Object.values(ingredientsInfo).reduce(
-      (acc, item) => acc + item.price * item.count,
-      0
-    );
-
-    return {
-      ...orderData,
-      ingredientsInfo,
-      date,
-      total
-    };
-  }, [orderData, ingredients]);
-
-  if (!orderInfo) {
+  // Если заказ еще не найден и идет загрузка
+  if (isLoading || (!orderData && !orderByNumber)) {
     return <Preloader />;
   }
 
-  return <OrderInfoUI orderInfo={orderInfo} />;
+  // Используем данные из стора или из запроса по номеру
+  const order = orderData || orderByNumber;
+
+  if (!order) {
+    return <Preloader />;
+  }
+
+  // Проверяем, что ингредиенты загружены
+  if (!ingredients.length) {
+    return <Preloader />;
+  }
+
+  // Формируем данные для отображения
+  const orderInfo = {
+    _id: order._id,
+    status: order.status,
+    name: order.name,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    number: order.number,
+    ingredients: order.ingredients
+  };
+
+  // Подсчет общей стоимости
+  const total = order.ingredients.reduce((sum, id) => {
+    const ingredient = ingredients.find((item) => item._id === id);
+    return sum + (ingredient?.price || 0);
+  }, 0);
+
+  // Формируем объект ingredientsInfo для OrderInfoUI
+  const ingredientsInfo = order.ingredients.reduce(
+    (acc, id) => {
+      const ingredient = ingredients.find((item) => item._id === id);
+      if (ingredient) {
+        if (!acc[id]) {
+          acc[id] = {
+            ...ingredient,
+            count: 0
+          };
+        }
+        acc[id].count += 1;
+      }
+      return acc;
+    },
+    {} as { [key: string]: any }
+  );
+
+  // Форматирование даты
+  const date = new Date(order.createdAt);
+
+  return (
+    <OrderInfoUI
+      orderInfo={{
+        ...orderInfo,
+        ingredientsInfo: ingredientsInfo,
+        date: date,
+        total: total
+      }}
+    />
+  );
 };
