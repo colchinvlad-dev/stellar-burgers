@@ -1,3 +1,4 @@
+// src/components/ingredient-details/ingredient-details.tsx
 import { FC } from 'react';
 import { Preloader } from '../ui/preloader';
 import { IngredientDetailsUI } from '../ui/ingredient-details';
@@ -14,5 +15,10 @@ export const IngredientDetails: FC = () => {
     return <Preloader />;
   }
 
-  return <IngredientDetailsUI ingredientData={ingredientData} />;
+  return (
+    <div data-testid='ingredient-details'>
+      <div data-testid='ingredient-details-name'>{ingredientData.name}</div>
+      <IngredientDetailsUI ingredientData={ingredientData} />
+    </div>
+  );
 };

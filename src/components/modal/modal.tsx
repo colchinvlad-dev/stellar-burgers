@@ -1,6 +1,6 @@
+// src/components/modal/modal.tsx
 import { FC, memo, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-
 import { TModalProps } from './type';
 import { ModalUI } from '@ui';
 
@@ -19,9 +19,11 @@ export const Modal: FC<TModalProps> = memo(({ title, onClose, children }) => {
   }, [onClose]);
 
   return ReactDOM.createPortal(
-    <ModalUI title={title} onClose={onClose}>
-      {children}
-    </ModalUI>,
+    <div data-testid='modal'>
+      <ModalUI title={title} onClose={onClose}>
+        {children}
+      </ModalUI>
+    </div>,
     modalRoot as HTMLDivElement
   );
 });
