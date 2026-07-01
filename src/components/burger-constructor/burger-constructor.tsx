@@ -76,9 +76,7 @@ export const BurgerConstructor: FC = () => {
     dispatch(clearOrderByNumber());
   };
 
-  // Функция для построения полной информации о заказе
   const buildOrderDataForModal = () => {
-    // Если есть полные данные из orderByNumber - используем их
     if (orderByNumberData) {
       return {
         _id: orderByNumberData._id,
@@ -91,9 +89,7 @@ export const BurgerConstructor: FC = () => {
       };
     }
 
-    // Если есть данные из order (только номер и имя) - используем их
     if (orderModalData) {
-      // Для состава заказа используем ингредиенты из конструктора
       const orderIngredients = [
         ...constructorItems.ingredients.map((item) => item._id),
         constructorItems.bun?._id
@@ -123,13 +119,15 @@ export const BurgerConstructor: FC = () => {
   const isLoading = orderRequest || orderByNumberLoading;
 
   return (
-    <BurgerConstructorUI
-      price={totalPrice}
-      orderRequest={isLoading}
-      constructorItems={safeConstructorItems}
-      orderModalData={orderDataForModal}
-      onOrderClick={onOrderClick}
-      closeOrderModal={closeOrderModalHandler}
-    />
+    <div data-testid='constructor-area'>
+      <BurgerConstructorUI
+        price={totalPrice}
+        orderRequest={isLoading}
+        constructorItems={safeConstructorItems}
+        orderModalData={orderDataForModal}
+        onOrderClick={onOrderClick}
+        closeOrderModal={closeOrderModalHandler}
+      />
+    </div>
   );
 };

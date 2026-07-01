@@ -1,3 +1,4 @@
+// src/components/burger-ingredient/burger-ingredient.tsx
 import { FC, memo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { BurgerIngredientUI } from '@ui';
@@ -16,16 +17,17 @@ export const BurgerIngredient: FC<TBurgerIngredientProps> = memo(
       }
     };
 
-    // Убеждаемся что count всегда число и передаем даже если 0
     const displayCount = count !== undefined && count !== null ? count : 0;
 
     return (
-      <BurgerIngredientUI
-        ingredient={ingredient}
-        count={displayCount}
-        locationState={{ background: location }}
-        handleAdd={handleAdd}
-      />
+      <div data-testid={`ingredient-${ingredient._id}`}>
+        <BurgerIngredientUI
+          ingredient={ingredient}
+          count={displayCount}
+          locationState={{ background: location }}
+          handleAdd={handleAdd}
+        />
+      </div>
     );
   }
 );
